@@ -100,7 +100,7 @@
             </h2>
 
             <h2 v-else class="text-center pt-4 pb-6">
-              Enter to your account
+              Enter to your account - DBS运维任务平台v0.1
             </h2>
 
             <v-alert
