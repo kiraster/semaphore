@@ -100,8 +100,11 @@
             </h2>
 
             <h2 v-else class="text-center pt-4 pb-6">
-              Enter to your account - DBS运维任务平台v0.1
+              DBS运维任务管理平台
             </h2>
+            <p class="text-center text-xs text-gray-500 mt-1">
+              v2.18.1-ansible2.16.5-beta.1-kiraster.1
+            </p>
 
             <v-alert
               :value="signInError != null"
