@@ -423,4 +423,8 @@ export default {
   unlimited: 'Unlimited',
   featureFlags: 'Feature Flags',
   nonAdminCanCreateProject: 'Non-admin Can Create Project',
+
+  // 新增翻译-2026-05-25 14:10:57
+  softwareName: 'DBS Operations Task Management Platform',
+  softwareVersion: 'v2.18.1-ansible2.16.5-beta.1-kiraster.1',
 };

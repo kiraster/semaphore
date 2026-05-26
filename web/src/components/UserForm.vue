@@ -20,8 +20,11 @@
     </EditDialog>
 
     <v-tabs v-model="tab">
-      <v-tab key="settings">Settings</v-tab>
-      <v-tab key="2fa" v-if="canChangePassword || authMethods.totp"> Security </v-tab>
+      <!-- <v-tab key="settings">Settings</v-tab> -->
+      <!-- <v-tab key="2fa" v-if="canChangePassword || authMethods.totp"> Security </v-tab> -->
+      <!-- 新增翻译-2026-05-25 15:09:49 -->
+       <v-tab key="settings">{{ $t('settings') }}</v-tab>
+      <v-tab key="2fa" v-if="canChangePassword || authMethods.totp"> {{ $t('security') }} </v-tab>
     </v-tabs>
 
     <v-divider class="mb-6" style="margin-top: -1px" />
@@ -118,17 +121,22 @@
 
       <v-tab-item key="2fa" v-if="item != null && (canChangePassword || authMethods.totp)">
         <div v-if="canChangePassword">
-          <div class="title mb-3">Password</div>
-          <v-btn color="primary" @click="passwordDialog = true">Change password</v-btn>
+          <!-- <div class="title mb-3">Password</div>
+          <v-btn color="primary" @click="passwordDialog = true">Change password</v-btn> -->
+          <!-- 新增翻译-2026-05-25 15:12:56 -->
+          <div class="title mb-3">{{ $t('password') }}</div>
+          <v-btn color="primary" @click="passwordDialog = true">{{ $t('changePassword') }}</v-btn>
         </div>
 
         <div :class="{ 'pt-10': !isNew }" v-if="authMethods.totp">
-          <div class="title mb-2">Two-factor authentication</div>
+          <!-- <div class="title mb-2">Two-factor authentication</div> -->
+          <!-- 新增翻译-2026-05-25 15:12:56 -->
+          <div class="title mb-2">{{ $t('twoFactorAuthentication') }}</div>
 
           <v-switch
             class="mt-0"
             v-model="totpEnabled"
-            label="Time-based one-time password"
+            :label="$t('timeBasedOneTimePassword')"
           ></v-switch>
 
           <img
@@ -143,14 +151,15 @@
               border: 10px solid white;
               background-color: white;
             "
-            alt="QR code"
+            :alt="$t('qrCode')"
           />
 
           <div
             v-if="authMethods.totp.allow_recovery && item.totp && item.totp.recovery_code"
             class="mt-5 pb-3"
           >
-            <div class="subtitle-1 mb-2">Recovery code</div>
+            <!-- <div class="subtitle-1 mb-2">Recovery code</div> -->
+            <div class="subtitle-1 mb-2">{{ $t('recoveryCode') }}</div>
             <div style="position: relative">
               <code style="font-size: 18px; background-color: #e03755">
                 {{ item.totp.recovery_code }}

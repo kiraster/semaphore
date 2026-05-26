@@ -11,7 +11,9 @@ module.exports = {
       historyApiFallback: true,
       proxy: {
         '^/api': {
-          target: 'http://localhost:3000',
+          // 调试前端页面指定后端api服务器2026-05-25 14:13:20
+          // target: 'http://localhost:3000',
+          target: 'http://172.31.100.251:3000',
         },
       },
     },

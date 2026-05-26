@@ -100,10 +100,12 @@
             </h2>
 
             <h2 v-else class="text-center pt-4 pb-6">
-              DBS运维任务管理平台
+              <!-- DBS运维任务管理平台-2026-05-25 14:11:47 -->
+              {{ $t('softwareName') }}
             </h2>
             <p class="text-center text-xs text-gray-500 mt-1">
-              v2.18.1-ansible2.16.5-beta.1-kiraster.1
+              <!-- v2.18.1-ansible2.16.5-beta.1-kiraster.1-2026-05-25 14:11:51 -->
+              {{ $t('softwareVersion') }}
             </p>
 
             <v-alert

@@ -37,14 +37,15 @@
       dense
     ></v-text-field>
 
-    <v-text-field
+    <!-- Telegram Chat ID input removed 2026-05-25 14:10:21-->
+    <!-- <v-text-field
       v-model="item.alert_chat"
       :label="$t('telegramChatIdOptional')"
       :disabled="formSaving"
       data-testid="newProject-tg"
       outlined
       dense
-    ></v-text-field>
+    ></v-text-field> -->
 
     <v-checkbox
       class="mt-0"

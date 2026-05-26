@@ -917,39 +917,41 @@ const LANGUAGES = {
   en: {
     title: 'English',
   },
-  es: {
-    title: 'Español',
-  },
-  ru: {
-    title: 'Russian',
-  },
-  de: {
-    title: 'German',
-  },
-  nl: {
-    title: 'Dutch (Netherlands)',
-  },
+  // 修改语言切换列表仅显示中英文-2026-05-25 14:10:34
+  // es: {
+  //   title: 'Español',
+  // },
+  // ru: {
+  //   title: 'Russian',
+  // },
+  // de: {
+  //   title: 'German',
+  // },
+  // nl: {
+  //   title: 'Dutch (Netherlands)',
+  // },
   zh_cn: {
-    title: '中文(大陆)',
+    title: '中文',
   },
-  zh_tw: {
-    title: '中文(台灣)',
-  },
-  fr: {
-    title: 'French',
-  },
-  it: {
-    title: 'Italian',
-  },
-  pl: {
-    title: 'Polish',
-  },
-  pt: {
-    title: 'Portuguese',
-  },
-  pt_br: {
-    title: 'Português do Brasil',
-  },
+  // 修改语言切换列表仅显示中英文-2026-05-25 14:10:37
+  // zh_tw: {
+  //   title: '中文(台灣)',
+  // },
+  // fr: {
+  //   title: 'French',
+  // },
+  // it: {
+  //   title: 'Italian',
+  // },
+  // pl: {
+  //   title: 'Polish',
+  // },
+  // pt: {
+  //   title: 'Portuguese',
+  // },
+  // pt_br: {
+  //   title: 'Português do Brasil',
+  // },
 };
 
 function getLangInfo(locale) {
