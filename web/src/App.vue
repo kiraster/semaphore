@@ -371,6 +371,21 @@
         </v-list-item>
 
         <v-list-item
+          v-if="project.type === ''"
+          key="reports"
+          :to="`/project/${projectId}/reports`"
+          data-testid="sidebar-reports"
+        >
+          <v-list-item-icon>
+            <v-icon>mdi-file-document</v-icon>
+          </v-list-item-icon>
+
+          <v-list-item-content>
+            <v-list-item-title>{{ $t('reports') }}</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
+
+        <v-list-item
           v-if="isPro && project.type === ''"
           key="runners"
           :to="`/project/${projectId}/runners`"

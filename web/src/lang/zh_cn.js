@@ -367,4 +367,10 @@ export default {
   timeBasedOneTimePassword: '基于时间的一次性密码',
   qrCode: '二维码',
   recoveryCode: '恢复码',
+
+  // 报告页面翻译-2026-05-27 23:07:10
+  reports: '报告',
+  filename: '文件名',
+  size: '大小',
+  modified: '修改时间',
 };

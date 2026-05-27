@@ -29,6 +29,7 @@ import (
 	"github.com/semaphoreui/semaphore/api/sockets"
 	"github.com/semaphoreui/semaphore/db"
 	"github.com/semaphoreui/semaphore/util"
+	"github.com/semaphoreui/semaphore/api/reports"
 )
 
 var startTime = tz.Now()
@@ -512,6 +513,12 @@ func Route(
 	projectIntegrationsAPI.HandleFunc("/{integration_id}/values/{value_id}", projects.UpdateIntegrationExtractValue).Methods("PUT")
 	projectIntegrationsAPI.HandleFunc("/{integration_id}/values/{value_id}", projects.DeleteIntegrationExtractValue).Methods("DELETE")
 	projectIntegrationsAPI.HandleFunc("/{integration_id}/values/{value_id}/refs", projects.GetIntegrationExtractValueRefs).Methods("GET")
+
+	// 报告下载 API
+	reportsAPI := authenticatedAPI.PathPrefix("/project/{project_id}/reports").Subrouter()
+	reportsAPI.Use(projects.ProjectMiddleware)
+	reportsAPI.Methods("GET").HandlerFunc(reports.GetReportFiles)
+	reportsAPI.Path("/{filename}").Methods("GET").HandlerFunc(reports.DownloadReportFile)
 
 	if os.Getenv("DEBUG") == "1" {
 		defer debugPrintRoutes(r)

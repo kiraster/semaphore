@@ -7,6 +7,7 @@ import TemplateDetails from '@/views/project/template/TemplateDetails.vue';
 import TemplateTerraformState from '@/views/project/template/TemplateTerraformState.vue';
 import Invites from '@/views/project/Invites.vue';
 import TemplatePerms from '@/views/project/template/TemplatePerms.vue';
+import Reports from '@/views/Reports.vue';
 import Roles from '@/views/Roles.vue';
 import Schedule from '../views/project/Schedule.vue';
 import History from '../views/project/History.vue';
@@ -186,6 +187,10 @@ const routes = [
     path: '/accept-invite/:token',
     component: AcceptInvite,
     props: true,
+  },
+  {
+    path: '/project/:projectId/reports',
+    component: Reports,
   },
 ];
 
