@@ -517,8 +517,8 @@ func Route(
 	// 报告下载 API
 	reportsAPI := authenticatedAPI.PathPrefix("/project/{project_id}/reports").Subrouter()
 	reportsAPI.Use(projects.ProjectMiddleware)
-	reportsAPI.Methods("GET").HandlerFunc(reports.GetReportFiles)
 	reportsAPI.Path("/download/{filename}").Methods("GET").HandlerFunc(reports.DownloadReportFile)
+	reportsAPI.Methods("GET").HandlerFunc(reports.GetReportFiles)
 
 	if os.Getenv("DEBUG") == "1" {
 		defer debugPrintRoutes(r)
