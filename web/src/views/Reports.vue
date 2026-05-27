@@ -2,9 +2,7 @@
 <template>
   <div>
     <v-card>
-      <!-- 操作栏 -->
       <v-card-title class="align-center">
-        <!-- 返回按钮 -->
         <v-btn
           v-if="currentPath"
           icon
@@ -15,7 +13,6 @@
           <v-icon>mdi-arrow-left</v-icon>
         </v-btn>
 
-        <!-- 面包屑导航 -->
         <v-breadcrumbs class="flex-grow-1" :items="breadcrumbs">
           <template v-slot:item="{ item }">
             <v-breadcrumb-item
@@ -27,7 +24,6 @@
           </template>
         </v-breadcrumbs>
 
-        <!-- 批量下载按钮 -->
         <v-btn
           v-if="selectedFiles.length > 0"
           color="primary"
@@ -45,9 +41,8 @@
           :loading="loading"
           class="elevation-1 report-table"
           item-key="name"
-          hide-default-footer
+          :footer-props="{ 'items-per-page-options': [10, 20, 50, 100] }"
         >
-          <!-- 复选框列 -->
           <template v-slot:item.checkbox="{ item }">
             <v-checkbox
               v-if="!item.is_dir"
@@ -59,10 +54,7 @@
           </template>
 
           <template v-slot:item.name="{ item }">
-            <v-list-item
-              @click="handleItemClick(item)"
-              class="cursor-pointer"
-            >
+            <v-list-item @click="handleItemClick(item)" class="cursor-pointer">
               <v-icon v-if="item.is_dir">mdi-folder</v-icon>
               <v-icon v-else>mdi-file</v-icon>
               <span class="ml-2">{{ item.name }}</span>
@@ -70,18 +62,24 @@
           </template>
 
           <template v-slot:item.size="{ item }">
-            {{ formatSize(item.size) }}
+            <span class="text-center d-block">{{ formatSize(item.size) }}</span>
+          </template>
+
+          <template v-slot:item.mod_time="{ item }">
+            <span class="text-center d-block">{{ item.mod_time }}</span>
           </template>
 
           <template v-slot:item.actions="{ item }">
-            <v-btn
-              v-if="!item.is_dir"
-              icon
-              color="primary"
-              @click="downloadFile(item.name)"
-            >
-              <v-icon>mdi-download</v-icon>
-            </v-btn>
+            <div class="text-center">
+              <v-btn
+                v-if="!item.is_dir"
+                icon
+                color="primary"
+                @click="handleSingleDownload(item.name)"
+              >
+                <v-icon>mdi-download</v-icon>
+              </v-btn>
+            </div>
           </template>
         </v-data-table>
       </v-card-text>
@@ -103,13 +101,17 @@ export default {
       selectedFiles: [],
       headers: [
         {
-          text: '', value: 'checkbox', width: '40px', sortable: false,
+          text: '', value: 'checkbox', width: '40px', sortable: false, align: 'center',
         },
         { text: this.$t('filename'), value: 'name' },
-        { text: this.$t('size'), value: 'size', width: '80px' },
-        { text: this.$t('modified'), value: 'mod_time', width: '150px' },
         {
-          text: this.$t('actions'), value: 'actions', width: '80px', sortable: false,
+          text: this.$t('size'), value: 'size', width: '100px', sortable: true, align: 'center',
+        },
+        {
+          text: this.$t('modified'), value: 'mod_time', width: '160px', sortable: true, align: 'center',
+        },
+        {
+          text: this.$t('actions'), value: 'actions', width: '80px', sortable: false, align: 'center',
         },
       ],
     };
@@ -162,21 +164,54 @@ export default {
       }
     },
     downloadFile(filename) {
-      const fullPath = this.currentPath ? `${this.currentPath}/${filename}` : filename;
-      const link = document.createElement('a');
-      link.href = `/api/project/${this.$route.params.projectId}/reports/download/${encodeURIComponent(fullPath)}`;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      return new Promise((resolve) => {
+        const fullPath = this.currentPath ? `${this.currentPath}/${filename}` : filename;
+        const downloadUrl = `/api/project/${this.$route.params.projectId}/reports/download/${encodeURIComponent(fullPath)}`;
+
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+
+        const timeout = setTimeout(() => {
+          iframe.remove();
+          resolve();
+        }, 30000);
+
+        iframe.onload = () => {
+          clearTimeout(timeout);
+          setTimeout(() => {
+            iframe.remove();
+            resolve();
+          }, 500);
+        };
+
+        iframe.onerror = () => {
+          clearTimeout(timeout);
+          iframe.remove();
+          resolve();
+        };
+
+        document.body.appendChild(iframe);
+        iframe.src = downloadUrl;
+      });
+    },
+    handleSingleDownload(filename) {
+      this.downloadFile(filename);
     },
     downloadSelected() {
-      this.selectedFiles.forEach((filename, index) => {
+      const downloadWithDelay = (file, delay) => new Promise((resolve) => {
         setTimeout(() => {
-          this.downloadFile(filename);
-        }, index * 500);
+          this.downloadFile(file).then(resolve);
+        }, delay);
       });
-      this.selectedFiles = [];
+
+      const delays = this.selectedFiles.map((_, index) => index * 800);
+      const downloads = this.selectedFiles.map(
+        (file, index) => downloadWithDelay(file, delays[index]),
+      );
+
+      Promise.all(downloads).then(() => {
+        this.selectedFiles = [];
+      });
     },
     formatSize(bytes) {
       if (bytes === 0) {
@@ -203,5 +238,6 @@ export default {
 
 .report-table .v-data-table__th {
   padding: 8px 12px;
+  text-align: center;
 }
 </style>
