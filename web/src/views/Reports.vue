@@ -2,7 +2,21 @@
 <template>
   <div>
     <v-card>
-      <v-card-title>{{ $t('reports') }}</v-card-title>
+      <!-- 面包屑导航 -->
+      <v-card-title>
+        <v-breadcrumbs class="mb-2">
+          <v-breadcrumb-item
+            v-for="(item, index) in breadcrumbs"
+            :key="index"
+            @click="navigateToPath(item.path)"
+            :disabled="index === breadcrumbs.length - 1"
+          >
+            {{ item.name }}
+          </v-breadcrumb-item>
+        </v-breadcrumbs>
+        {{ $t('reports') }}
+      </v-card-title>
+      
       <v-card-text>
         <v-data-table
           :headers="headers"
@@ -11,9 +25,14 @@
           class="elevation-1"
         >
           <template v-slot:item.name="{ item }">
-            <v-icon v-if="item.is_dir">mdi-folder</v-icon>
-            <v-icon v-else>mdi-file</v-icon>
-            <span class="ml-2">{{ item.name }}</span>
+            <v-list-item
+              @click="handleItemClick(item)"
+              class="cursor-pointer"
+            >
+              <v-icon v-if="item.is_dir">mdi-folder</v-icon>
+              <v-icon v-else>mdi-file</v-icon>
+              <span class="ml-2">{{ item.name }}</span>
+            </v-list-item>
           </template>
           <template v-slot:item.size="{ item }">
             {{ formatSize(item.size) }}
@@ -43,6 +62,8 @@ export default {
     return {
       files: [],
       loading: false,
+      currentPath: '',  // 当前路径
+      breadcrumbs: [],  // 面包屑导航
       headers: [
         { text: this.$t('filename'), value: 'name' },
         { text: this.$t('size'), value: 'size' },
@@ -58,18 +79,47 @@ export default {
     async loadFiles() {
       this.loading = true;
       try {
-        const response = await axios.get(`/api/project/${this.$route.params.projectId}/reports`);
+        const pathParam = this.currentPath ? `?path=${encodeURIComponent(this.currentPath)}` : '';
+        const response = await axios.get(`/api/project/${this.$route.params.projectId}/reports${pathParam}`);
         this.files = response.data;
+        this.updateBreadcrumbs();
       } catch (error) {
         console.error('Failed to load report files:', error);
       } finally {
         this.loading = false;
       }
     },
+    handleItemClick(item) {
+      if (item.is_dir) {
+        // 进入子目录
+        const newPath = this.currentPath 
+          ? `${this.currentPath}/${item.name}` 
+          : item.name;
+        this.currentPath = newPath;
+        this.loadFiles();
+      }
+    },
+    navigateToPath(path) {
+      this.currentPath = path;
+      this.loadFiles();
+    },
+    updateBreadcrumbs() {
+      this.breadcrumbs = [{ name: '报告', path: '' }];
+      if (this.currentPath) {
+        const parts = this.currentPath.split('/');
+        let currentPath = '';
+        parts.forEach(part => {
+          currentPath = currentPath ? `${currentPath}/${part}` : part;
+          this.breadcrumbs.push({ name: part, path: currentPath });
+        });
+      }
+    },
     downloadFile(filename) {
-      // 创建下载链接
+      const fullPath = this.currentPath 
+        ? `${this.currentPath}/${filename}` 
+        : filename;
       const link = document.createElement('a');
-      link.href = `/api/project/${this.$route.params.projectId}/reports/${encodeURIComponent(filename)}`;
+      link.href = `/api/project/${this.$route.params.projectId}/reports/download/${encodeURIComponent(fullPath)}`;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
