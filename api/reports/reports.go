@@ -63,34 +63,34 @@ func GetReportFiles(w http.ResponseWriter, r *http.Request) {
 
 // DownloadReportFile serves a file for download
 func DownloadReportFile(w http.ResponseWriter, r *http.Request) {
-    vars := mux.Vars(r)
-    filename := vars["filename"]
+	vars := mux.Vars(r)
+	filename := vars["filename"]
 
-    // 安全检查：防止路径遍历攻击
-    if strings.Contains(filename, "..") || strings.Contains(filename, "\\") {
-        http.Error(w, "Invalid filename", http.StatusBadRequest)
-        return
-    }
+	// 安全检查：防止路径遍历攻击
+	if strings.Contains(filename, "..") || strings.Contains(filename, "\\") {
+		http.Error(w, "Invalid filename", http.StatusBadRequest)
+		return
+	}
 
-    filePath := filepath.Join(reportDir, filename)
+	filePath := filepath.Join(reportDir, filename)
 
-    // 检查文件是否存在
-    if _, err := os.Stat(filePath); os.IsNotExist(err) {
-        http.Error(w, "File not found", http.StatusNotFound)
-        return
-    }
+	// 检查文件是否存在
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
 
-    // 检查是否为文件（不是目录）
-    info, err := os.Stat(filePath)
-    if err != nil || info.IsDir() {
-        http.Error(w, "Not a file", http.StatusBadRequest)
-        return
-    }
+	// 检查是否为文件（不是目录）
+	info, err := os.Stat(filePath)
+	if err != nil || info.IsDir() {
+		http.Error(w, "Not a file", http.StatusBadRequest)
+		return
+	}
 
-    // 设置响应头
-    w.Header().Set("Content-Disposition", "attachment; filename="+filepath.Base(filePath))
-    w.Header().Set("Content-Type", "application/octet-stream")
+	// 设置响应头
+	w.Header().Set("Content-Disposition", "attachment; filename="+filepath.Base(filePath))
+	w.Header().Set("Content-Type", "application/octet-stream")
 
-    // 读取并返回文件内容
-    http.ServeFile(w, r, filePath)
+	// 读取并返回文件内容
+	http.ServeFile(w, r, filePath)
 }
