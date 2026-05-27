@@ -24,41 +24,41 @@ type FileInfo struct {
 
 // GetReportFiles returns a list of files in the report directory
 func GetReportFiles(w http.ResponseWriter, r *http.Request) {
-    // 获取路径参数
-    pathParam := r.URL.Query().Get("path")
-    
-    // 安全检查：防止路径遍历
-    if strings.Contains(pathParam, "..") || strings.Contains(pathParam, "\\") {
-        http.Error(w, "Invalid path", http.StatusBadRequest)
-        return
-    }
-    
-    dirPath := filepath.Join(reportDir, pathParam)
-    
-    files, err := os.ReadDir(dirPath)
-    if err != nil {
-        log.WithError(err).Error("Failed to read report directory")
-        http.Error(w, "Failed to read report directory", http.StatusInternalServerError)
-        return
-    }
+	// 获取路径参数
+	pathParam := r.URL.Query().Get("path")
 
-    var fileList []FileInfo
-    for _, file := range files {
-        info, err := file.Info()
-        if err != nil {
-            continue
-        }
-        fileList = append(fileList, FileInfo{
-            Name:    file.Name(),
-            Size:    info.Size(),
-            ModTime: info.ModTime().Format("2006-01-02 15:04:05"),
-            IsDir:   file.IsDir(),
-        })
-    }
+	// 安全检查：防止路径遍历
+	if strings.Contains(pathParam, "..") || strings.Contains(pathParam, "\\") {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusOK)
-    _ = json.NewEncoder(w).Encode(fileList)
+	dirPath := filepath.Join(reportDir, pathParam)
+
+	files, err := os.ReadDir(dirPath)
+	if err != nil {
+		log.WithError(err).Error("Failed to read report directory")
+		http.Error(w, "Failed to read report directory", http.StatusInternalServerError)
+		return
+	}
+
+	var fileList []FileInfo
+	for _, file := range files {
+		info, err := file.Info()
+		if err != nil {
+			continue
+		}
+		fileList = append(fileList, FileInfo{
+			Name:    file.Name(),
+			Size:    info.Size(),
+			ModTime: info.ModTime().Format("2006-01-02 15:04:05"),
+			IsDir:   file.IsDir(),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(fileList)
 }
 
 // DownloadReportFile serves a file for download
