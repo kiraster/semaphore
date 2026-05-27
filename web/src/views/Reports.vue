@@ -16,7 +16,7 @@
         </v-breadcrumbs>
         {{ $t('reports') }}
       </v-card-title>
-      
+
       <v-card-text>
         <v-data-table
           :headers="headers"
@@ -62,8 +62,8 @@ export default {
     return {
       files: [],
       loading: false,
-      currentPath: '',  // 当前路径
-      breadcrumbs: [],  // 面包屑导航
+      currentPath: '',
+      breadcrumbs: [],
       headers: [
         { text: this.$t('filename'), value: 'name' },
         { text: this.$t('size'), value: 'size' },
@@ -92,9 +92,7 @@ export default {
     handleItemClick(item) {
       if (item.is_dir) {
         // 进入子目录
-        const newPath = this.currentPath 
-          ? `${this.currentPath}/${item.name}` 
-          : item.name;
+        const newPath = this.currentPath ? `${this.currentPath}/${item.name}` : item.name;
         this.currentPath = newPath;
         this.loadFiles();
       }
@@ -108,16 +106,14 @@ export default {
       if (this.currentPath) {
         const parts = this.currentPath.split('/');
         let currentPath = '';
-        parts.forEach(part => {
+        parts.forEach((part) => {
           currentPath = currentPath ? `${currentPath}/${part}` : part;
           this.breadcrumbs.push({ name: part, path: currentPath });
         });
       }
     },
     downloadFile(filename) {
-      const fullPath = this.currentPath 
-        ? `${this.currentPath}/${filename}` 
-        : filename;
+      const fullPath = this.currentPath ? `${this.currentPath}/${filename}` : filename;
       const link = document.createElement('a');
       link.href = `/api/project/${this.$route.params.projectId}/reports/download/${encodeURIComponent(fullPath)}`;
       link.download = filename;
@@ -126,7 +122,9 @@ export default {
       document.body.removeChild(link);
     },
     formatSize(bytes) {
-      if (bytes === 0) return '0 B';
+      if (bytes === 0) {
+        return '0 B';
+      }
       const k = 1024;
       const sizes = ['B', 'KB', 'MB', 'GB'];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
