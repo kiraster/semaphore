@@ -13,7 +13,7 @@
         >
           <v-icon>mdi-arrow-left</v-icon>
         </v-btn>
-        
+
         <!-- 面包屑导航 -->
         <v-breadcrumbs class="mb-2">
           <v-breadcrumb-item
@@ -25,7 +25,7 @@
             {{ item.name }}
           </v-breadcrumb-item>
         </v-breadcrumbs>
-        
+
         <!-- 批量下载按钮 -->
         <v-spacer />
         <v-btn
@@ -37,7 +37,7 @@
           批量下载 ({{ selectedFiles.length }})
         </v-btn>
       </v-card-title>
-      
+
       <v-card-text>
         <v-data-table
           :headers="headers"
@@ -55,7 +55,7 @@
               hide-details
             ></v-checkbox>
           </template>
-          
+
           <template v-slot:item.name="{ item }">
             <v-list-item
               @click="handleItemClick(item)"
@@ -66,11 +66,11 @@
               <span class="ml-2">{{ item.name }}</span>
             </v-list-item>
           </template>
-          
+
           <template v-slot:item.size="{ item }">
             {{ formatSize(item.size) }}
           </template>
-          
+
           <template v-slot:item.actions="{ item }">
             <v-btn
               v-if="!item.is_dir"
