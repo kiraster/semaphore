@@ -3,31 +3,31 @@
   <div>
     <v-card>
       <!-- 操作栏 -->
-      <v-card-title>
+      <v-card-title class="align-center">
         <!-- 返回按钮 -->
         <v-btn
           v-if="currentPath"
           icon
           @click="goBack"
-          class="mr-4"
+          class="mr-2"
+          depressed
         >
           <v-icon>mdi-arrow-left</v-icon>
         </v-btn>
 
         <!-- 面包屑导航 -->
-        <v-breadcrumbs class="mb-2">
-          <v-breadcrumb-item
-            v-for="(item, index) in breadcrumbs"
-            :key="index"
-            @click="navigateToPath(item.path)"
-            :disabled="index === breadcrumbs.length - 1"
-          >
-            {{ item.name }}
-          </v-breadcrumb-item>
+        <v-breadcrumbs class="flex-grow-1" :items="breadcrumbs">
+          <template v-slot:item="{ item }">
+            <v-breadcrumb-item
+              @click="navigateToPath(item.path)"
+              :disabled="item.path === currentPath"
+            >
+              {{ item.name }}
+            </v-breadcrumb-item>
+          </template>
         </v-breadcrumbs>
 
         <!-- 批量下载按钮 -->
-        <v-spacer />
         <v-btn
           v-if="selectedFiles.length > 0"
           color="primary"
@@ -43,8 +43,9 @@
           :headers="headers"
           :items="files"
           :loading="loading"
-          class="elevation-1"
+          class="elevation-1 report-table"
           item-key="name"
+          hide-default-footer
         >
           <!-- 复选框列 -->
           <template v-slot:item.checkbox="{ item }">
@@ -53,6 +54,7 @@
               v-model="selectedFiles"
               :value="item.name"
               hide-details
+              class="checkbox-cell"
             ></v-checkbox>
           </template>
 
@@ -100,11 +102,15 @@ export default {
       breadcrumbs: [],
       selectedFiles: [],
       headers: [
-        { text: '', value: 'checkbox', sortable: false },
+        {
+          text: '', value: 'checkbox', width: '40px', sortable: false,
+        },
         { text: this.$t('filename'), value: 'name' },
-        { text: this.$t('size'), value: 'size' },
-        { text: this.$t('modified'), value: 'mod_time' },
-        { text: this.$t('actions'), value: 'actions', sortable: false },
+        { text: this.$t('size'), value: 'size', width: '80px' },
+        { text: this.$t('modified'), value: 'mod_time', width: '150px' },
+        {
+          text: this.$t('actions'), value: 'actions', width: '80px', sortable: false,
+        },
       ],
     };
   },
@@ -114,7 +120,7 @@ export default {
   methods: {
     async loadFiles() {
       this.loading = true;
-      this.selectedFiles = []; // 重置选择
+      this.selectedFiles = [];
       try {
         const pathParam = this.currentPath ? `?path=${encodeURIComponent(this.currentPath)}` : '';
         const response = await axios.get(`/api/project/${this.$route.params.projectId}/reports${pathParam}`);
@@ -138,7 +144,6 @@ export default {
       this.loadFiles();
     },
     goBack() {
-      // 返回上一级目录
       if (this.currentPath) {
         const parts = this.currentPath.split('/');
         this.currentPath = parts.slice(0, -1).join('/');
@@ -166,13 +171,12 @@ export default {
       document.body.removeChild(link);
     },
     downloadSelected() {
-      // 逐个下载选中的文件
-      this.selectedFiles.forEach((filename) => {
+      this.selectedFiles.forEach((filename, index) => {
         setTimeout(() => {
           this.downloadFile(filename);
-        }, 500); // 延迟下载，避免浏览器阻止
+        }, index * 500);
       });
-      this.selectedFiles = []; // 清空选择
+      this.selectedFiles = [];
     },
     formatSize(bytes) {
       if (bytes === 0) {
@@ -186,3 +190,18 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.report-table .checkbox-cell {
+  padding: 0;
+  margin: 0;
+}
+
+.report-table .v-data-table__td {
+  padding: 8px 12px;
+}
+
+.report-table .v-data-table__th {
+  padding: 8px 12px;
+}
+</style>
