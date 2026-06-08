@@ -102,11 +102,35 @@ export default {
       breadcrumbs: [],
       selectedFiles: [],
       headers: [
-        { text: '', value: 'checkbox', width: '40px', sortable: false, align: 'center' },
+        {
+          text: '',
+          value: 'checkbox',
+          width: '40px',
+          sortable: false,
+          align: 'center',
+        },
         { text: this.$t('filename'), value: 'name' },
-        { text: this.$t('size'), value: 'size', width: '100px', sortable: true, align: 'center' },
-        { text: this.$t('modified'), value: 'mod_time', width: '160px', sortable: true, align: 'center' },
-        { text: this.$t('actions'), value: 'actions', width: '80px', sortable: false, align: 'center' },
+        {
+          text: this.$t('size'),
+          value: 'size',
+          width: '100px',
+          sortable: true,
+          align: 'center',
+        },
+        {
+          text: this.$t('modified'),
+          value: 'mod_time',
+          width: '160px',
+          sortable: true,
+          align: 'center',
+        },
+        {
+          text: this.$t('actions'),
+          value: 'actions',
+          width: '80px',
+          sortable: false,
+          align: 'center',
+        },
       ],
     };
   },
@@ -168,23 +192,20 @@ export default {
     },
     async downloadSelectedAsZip() {
       if (this.selectedFiles.length === 0) return;
-      
+
       this.isDownloading = true;
-      
+
       try {
-        // Build full paths for selected files
-        const filesWithPath = this.selectedFiles.map(filename => {
-          return this.currentPath ? `${this.currentPath}/${filename}` : filename;
-        });
-        
-        // Make POST request to download zip
+        const filesWithPath = this.selectedFiles.map((filename) => (
+          this.currentPath ? `${this.currentPath}/${filename}` : filename
+        ));
+
         const response = await axios.post(
           `/api/project/${this.$route.params.projectId}/reports/download/zip`,
           { files: filesWithPath },
-          { responseType: 'blob' }
+          { responseType: 'blob' },
         );
-        
-        // Create download link
+
         const url = window.URL.createObjectURL(response.data);
         const link = document.createElement('a');
         link.href = url;
@@ -193,14 +214,13 @@ export default {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-        
-        // Clear selection
+
         this.selectedFiles = [];
       } catch (error) {
         console.error('Failed to download zip:', error);
         this.$snackbar({
           color: 'error',
-          text: '批量下载失败，请重试'
+          text: '批量下载失败，请重试',
         });
       } finally {
         this.isDownloading = false;
