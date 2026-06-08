@@ -27,7 +27,8 @@
         <v-btn
           v-if="selectedFiles.length > 0"
           color="primary"
-          @click="downloadSelected"
+          @click="downloadSelectedAsZip"
+          :loading="isDownloading"
         >
           <v-icon left>mdi-download</v-icon>
           批量下载 ({{ selectedFiles.length }})
@@ -75,7 +76,7 @@
                 v-if="!item.is_dir"
                 icon
                 color="primary"
-                @click="handleSingleDownload(item.name)"
+                @click="downloadSingleFile(item.name)"
               >
                 <v-icon>mdi-download</v-icon>
               </v-btn>
@@ -96,23 +97,16 @@ export default {
     return {
       files: [],
       loading: false,
+      isDownloading: false,
       currentPath: '',
       breadcrumbs: [],
       selectedFiles: [],
       headers: [
-        {
-          text: '', value: 'checkbox', width: '40px', sortable: false, align: 'center',
-        },
+        { text: '', value: 'checkbox', width: '40px', sortable: false, align: 'center' },
         { text: this.$t('filename'), value: 'name' },
-        {
-          text: this.$t('size'), value: 'size', width: '100px', sortable: true, align: 'center',
-        },
-        {
-          text: this.$t('modified'), value: 'mod_time', width: '160px', sortable: true, align: 'center',
-        },
-        {
-          text: this.$t('actions'), value: 'actions', width: '80px', sortable: false, align: 'center',
-        },
+        { text: this.$t('size'), value: 'size', width: '100px', sortable: true, align: 'center' },
+        { text: this.$t('modified'), value: 'mod_time', width: '160px', sortable: true, align: 'center' },
+        { text: this.$t('actions'), value: 'actions', width: '80px', sortable: false, align: 'center' },
       ],
     };
   },
@@ -163,55 +157,54 @@ export default {
         });
       }
     },
-    downloadFile(filename) {
-      return new Promise((resolve) => {
-        const fullPath = this.currentPath ? `${this.currentPath}/${filename}` : filename;
-        const downloadUrl = `/api/project/${this.$route.params.projectId}/reports/download/${encodeURIComponent(fullPath)}`;
-
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-
-        const timeout = setTimeout(() => {
-          iframe.remove();
-          resolve();
-        }, 30000);
-
-        iframe.onload = () => {
-          clearTimeout(timeout);
-          setTimeout(() => {
-            iframe.remove();
-            resolve();
-          }, 500);
-        };
-
-        iframe.onerror = () => {
-          clearTimeout(timeout);
-          iframe.remove();
-          resolve();
-        };
-
-        document.body.appendChild(iframe);
-        iframe.src = downloadUrl;
-      });
+    downloadSingleFile(filename) {
+      const fullPath = this.currentPath ? `${this.currentPath}/${filename}` : filename;
+      const link = document.createElement('a');
+      link.href = `/api/project/${this.$route.params.projectId}/reports/download/${encodeURIComponent(fullPath)}`;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     },
-    handleSingleDownload(filename) {
-      this.downloadFile(filename);
-    },
-    downloadSelected() {
-      const downloadWithDelay = (file, delay) => new Promise((resolve) => {
-        setTimeout(() => {
-          this.downloadFile(file).then(resolve);
-        }, delay);
-      });
-
-      const delays = this.selectedFiles.map((_, index) => index * 800);
-      const downloads = this.selectedFiles.map(
-        (file, index) => downloadWithDelay(file, delays[index]),
-      );
-
-      Promise.all(downloads).then(() => {
+    async downloadSelectedAsZip() {
+      if (this.selectedFiles.length === 0) return;
+      
+      this.isDownloading = true;
+      
+      try {
+        // Build full paths for selected files
+        const filesWithPath = this.selectedFiles.map(filename => {
+          return this.currentPath ? `${this.currentPath}/${filename}` : filename;
+        });
+        
+        // Make POST request to download zip
+        const response = await axios.post(
+          `/api/project/${this.$route.params.projectId}/reports/download/zip`,
+          { files: filesWithPath },
+          { responseType: 'blob' }
+        );
+        
+        // Create download link
+        const url = window.URL.createObjectURL(response.data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `reports_${Date.now()}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        // Clear selection
         this.selectedFiles = [];
-      });
+      } catch (error) {
+        console.error('Failed to download zip:', error);
+        this.$snackbar({
+          color: 'error',
+          text: '批量下载失败，请重试'
+        });
+      } finally {
+        this.isDownloading = false;
+      }
     },
     formatSize(bytes) {
       if (bytes === 0) {

@@ -518,8 +518,13 @@ func Route(
 	reportsAPI := authenticatedAPI.PathPrefix("/project/{project_id}/reports").Subrouter()
 	reportsAPI.Use(projects.ProjectMiddleware)
 
-	// 使用 :.* 来匹配包含斜杠的路径
+	// 单个文件下载
 	reportsAPI.Path("/download/{filename:.*}").Methods("GET").HandlerFunc(reports.DownloadReportFile)
+
+	// 批量下载（ZIP打包）
+	reportsAPI.Path("/download/zip").Methods("POST").HandlerFunc(reports.DownloadReportFilesAsZip)
+
+	// 文件列表
 	reportsAPI.Methods("GET").HandlerFunc(reports.GetReportFiles)
 
 	if os.Getenv("DEBUG") == "1" {
