@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const reportDir = "/opt/semaphore/export_report"
+const reportDir = "/etc/semaphore/export_report"
 
 // FileInfo represents a file in the report directory
 type FileInfo struct {
