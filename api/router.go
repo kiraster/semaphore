@@ -30,6 +30,7 @@ import (
 	"github.com/semaphoreui/semaphore/db"
 	"github.com/semaphoreui/semaphore/util"
 	"github.com/semaphoreui/semaphore/api/reports"
+	"github.com/semaphoreui/semaphore/api/inventory"
 )
 
 var startTime = tz.Now()
