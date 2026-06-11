@@ -527,6 +527,12 @@ func Route(
 	// 文件列表
 	reportsAPI.Methods("GET").HandlerFunc(reports.GetReportFiles)
 
+	// 新路由（读取 XLSX 清单）
+	xlsxAPI := authenticatedAPI.PathPrefix("/project/{project_id}/xlsx-inventory").Subrouter()
+	xlsxAPI.Use(projects.ProjectMiddleware)
+	xlsxAPI.Methods("GET").HandlerFunc(inventory.GetXLSXInventory)
+
+
 	if os.Getenv("DEBUG") == "1" {
 		defer debugPrintRoutes(r)
 	}

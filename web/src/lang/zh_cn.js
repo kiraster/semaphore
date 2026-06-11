@@ -373,4 +373,9 @@ export default {
   filename: '文件名',
   size: '大小',
   modified: '修改时间',
+
+  xlsxInventory: 'XLSX 清单',
+  rows: '行',
+  hostInventory: '主机清单',
+  groupVariables: '组变量',
 };
