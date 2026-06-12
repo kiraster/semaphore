@@ -1,83 +1,72 @@
-<template>
-  <v-container fluid>
-    <v-card>
-      <v-tabs v-model="activeFile" background-color="primary">
-        <v-tab
-          v-for="(file, index) in inventoryFiles"
-          :key="index"
-          :href="'#file-' + index"
-        >
-          {{ file.name }}
-        </v-tab>
-      </v-tabs>
+<template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
+  <!-- 加载状态 -->
+  <div v-if="!isLoaded">
+    <v-progress-linear indeterminate color="primary darken-2"></v-progress-linear>
+  </div>
+  <!-- 主内容 -->
+  <div v-else>
+    <!-- 工具栏 -->
+    <v-toolbar flat>
+      <v-app-bar-nav-icon @click="showDrawer()"></v-app-bar-nav-icon>
+      <v-toolbar-title>{{ $t('xlsxInventory') }}</v-toolbar-title>
+      <v-spacer></v-spacer>
+    </v-toolbar>
+    <!-- 文件选择标签页 -->
+    <v-tabs show-arrows class="pl-4" v-model="activeFile">
+      <v-tab
+        v-for="(file, index) in inventoryFiles"
+        :key="index"
+      >
+        {{ file.name }}
+      </v-tab>
+    </v-tabs>
+    <v-divider style="margin-top: -1px;"/>
+    <!-- Sheet 选择标签页 -->
+    <v-tabs show-arrows class="pl-4" v-model="activeSheet">
+      <v-tab
+        v-for="(sheet, index) in currentFile?.sheets || []"
+        :key="index"
+      >
+        {{ sheet.name }} ({{ sheet.rows.length }} 行)
+      </v-tab>
+    </v-tabs>
+    <v-divider style="margin-top: -1px;"/>
 
-      <v-tabs-items v-model="activeFile">
-        <v-tab-item
-          v-for="(file, index) in inventoryFiles"
-          :key="index"
-          :id="'file-' + index"
-        >
-          <v-tabs v-model="activeSheet[index]" class="mt-4">
-            <v-tab
-              v-for="(sheet, sIndex) in file.sheets"
-              :key="sIndex"
-              :href="'#sheet-' + index + '-' + sIndex"
-            >
-              {{ sheet.name }}
-              <span class="ml-2 grey--text text--lighten-1">
-                ({{ sheet.rows.length }} {{ $t('rows') }})
-              </span>
-            </v-tab>
-          </v-tabs>
-
-          <v-tabs-items v-model="activeSheet[index]">
-            <v-tab-item
-              v-for="(sheet, sIndex) in file.sheets"
-              :key="sIndex"
-              :id="'#sheet-' + index + '-' + sIndex"
-            >
-              <v-card-text>
-                <v-text-field
-                  v-model="searchQuery[index][sIndex]"
-                  :placeholder="$t('search')"
-                  prepend-icon="mdi-search"
-                  class="mb-4"
-                ></v-text-field>
-
-                <v-data-table
-                  :headers="getTableHeaders(sheet.headers)"
-                  :items="getFilteredRows(sheet.rows, searchQuery[index][sIndex])"
-                  class="elevation-1"
-                  item-key="index"
-                  :footer-props="{ 'items-per-page-options': [10, 20, 50] }"
-                >
-                  <template v-slot:item.ansible_password="{ item }">
-                    <v-icon>mdi-eye-off</v-icon>
-                    <span class="ml-2">{{ maskPassword(item.ansible_password) }}</span>
-                  </template>
-                </v-data-table>
-
-                <v-chip
-                  v-if="isHostsSheet(sheet)"
-                  color="blue"
-                  class="mt-4"
-                >
-                  {{ $t('hostInventory') }}
-                </v-chip>
-                <v-chip
-                  v-else-if="isGroupVarsSheet(sheet)"
-                  color="green"
-                  class="mt-4"
-                >
-                  {{ $t('groupVariables') }}
-                </v-chip>
-              </v-card-text>
-            </v-tab-item>
-          </v-tabs-items>
-        </v-tab-item>
-      </v-tabs-items>
-    </v-card>
-  </v-container>
+    <!-- 搜索框 -->
+    <div class="pl-4 pr-4 mt-4">
+      <v-text-field
+        v-model="searchQuery"
+        placeholder="搜索..."
+        prepend-icon="mdi-search"
+      ></v-text-field>
+    </div>
+    <!-- 数据表格 -->
+    <v-data-table
+      class="mt-4"
+      :headers="tableHeaders"
+      :items="tableItems"
+      item-key="__id"
+      :footer-props="{ 'items-per-page-options': [10, 20, 50] }"
+    >
+      <template v-slot:item.ansible_password="{ item }">
+        <v-icon>mdi-eye-off</v-icon>
+        <span class="ml-2">{{ maskPassword(item.ansible_password) }}</span>
+      </template>
+      <template v-slot:item.password="{ item }">
+        <v-icon>mdi-eye-off</v-icon>
+        <span class="ml-2">{{ maskPassword(item.password) }}</span>
+      </template>
+    </v-data-table>
+    <!-- Sheet 类型标识 -->
+    <div class="pl-4 pb-4">
+      <v-chip v-if="isHostsSheet(currentSheet)" color="blue">
+        主机清单
+      </v-chip>
+      <v-chip v-else-if="isGroupVarsSheet(currentSheet)" color="green">
+        组变量
+      </v-chip>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -89,36 +78,55 @@ export default {
     return {
       inventoryFiles: [],
       activeFile: 0,
-      activeSheet: [],
-      searchQuery: [],
+      activeSheet: 0,
+      searchQuery: '',
+      isLoaded: false,
     };
   },
   mounted() {
+    console.log('XLSXInventory mounted');
     this.loadInventory();
+  },
+  computed: {
+    projectId() {
+      return this.$route.params.projectId;
+    },
+    currentFile() {
+      return this.inventoryFiles[this.activeFile] || null;
+    },
+    currentSheet() {
+      if (!this.currentFile) return null;
+      return this.currentFile.sheets[this.activeSheet] || null;
+    },
+    tableHeaders() {
+      if (!this.currentSheet) return [];
+      return this.currentSheet.headers.map((h) => ({ text: h, value: h }));
+    },
+    tableItems() {
+      if (!this.currentSheet) return [];
+      let items = this.currentSheet.rows.map((row, index) => ({ ...row, __id: index }));
+      if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase();
+        items = items.filter((row) => (
+          Object.values(row).some((val) => String(val).toLowerCase().includes(q))
+        ));
+      }
+      return items;
+    },
   },
   methods: {
     async loadInventory() {
       try {
-        const response = await axios.get(`/api/project/${this.$route.params.projectId}/xlsx-inventory`);
+        console.log('Loading inventory for project:', this.projectId);
+        const response = await axios.get(`/api/project/${this.projectId}/xlsx-inventory`);
         this.inventoryFiles = response.data;
-        this.activeSheet = this.inventoryFiles.map(() => 0);
-        this.searchQuery = this.inventoryFiles.map((file) => file.sheets.map(() => ''));
+        console.log('Inventory loaded:', this.inventoryFiles);
       } catch (error) {
         console.error('Failed to load inventory:', error);
+      } finally {
+        this.isLoaded = true;
+        console.log('isLoaded set to true');
       }
-    },
-    getTableHeaders(headers) {
-      return headers.map((h) => ({
-        text: h,
-        value: h,
-      }));
-    },
-    getFilteredRows(rows, query) {
-      if (!query) return rows;
-      const q = query.toLowerCase();
-      return rows.filter((row) => (
-        Object.values(row).some((val) => String(val).toLowerCase().includes(q))
-      ));
     },
     maskPassword(password) {
       if (!password) return '';
@@ -132,6 +140,11 @@ export default {
     isGroupVarsSheet(sheet) {
       const groupHeaders = ['group', 'group_name', 'ansible_connection'];
       return sheet.headers.some((h) => groupHeaders.includes(h.toLowerCase()));
+    },
+    showDrawer() {
+      if (this.$store) {
+        this.$store.commit('toggleDrawer');
+      }
     },
   },
 };
