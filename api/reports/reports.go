@@ -223,15 +223,6 @@ func addDirectoryToZip(zipWriter *zip.Writer, baseDir, dirPath string) error {
 	return nil
 }
 
-// Read the zip file and send to client
-zipFile, err := os.Open(tempFilePath)
-if err != nil {
-	log.WithError(err).Error("Failed to open zip file")
-	http.Error(w, "Internal server error", http.StatusInternalServerError)
-	return
-}
-defer zipFile.Close()
-
 // Set response headers	timestamp := time.Now().Format("20060102_150405")
 w.Header().Set("Content-Disposition", "attachment; filename=reports_"+projectID+"_"+timestamp+".zip")
 w.Header().Set("Content-Type", "application/zip")
