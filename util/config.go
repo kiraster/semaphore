@@ -281,6 +281,12 @@ type ConfigDirs struct {
 	SSHAgentSockets string `json:"ssh_agent_sockets,omitempty" env:"SEMAPHORE_SSH_AGENT_SOCKETS_DIR" default:"/tmp/semaphore"`
 }
 
+// 添加新的inventory配置结构体, 2026-06-13 12:22:44
+type InventoryConfig struct {
+    AnsiblePath string `json:"ansible_path,omitempty" env:"SEMAPHORE_INVENTORY_ANSIBLE_PATH" default:"/etc/semaphore/inventory_ansible.xlsx"`
+    NornirPath  string `json:"nornir_path,omitempty" env:"SEMAPHORE_INVENTORY_NORNIR_PATH" default:"/etc/semaphore/inventory_nornir.xlsx"`
+}
+
 // ConfigType mapping between Config and the json file that sets it
 type ConfigType struct {
 	MySQL    *DbConfig `json:"mysql,omitempty"`
@@ -415,6 +421,8 @@ type ConfigType struct {
 
 	Dirs                  *ConfigDirs `json:"dirs,omitempty"`
 	SubscriptionServerURL string      `json:"subscription_server_url,omitempty" env:"SEMAPHORE_SUBSCRIPTION_SERVER_URL" default:"https://portal.semaphoreui.com/billing"`
+	// Inventory is the inventory configuration. 2026-06-13 12:22:03
+	Inventory *InventoryConfig `json:"inventory,omitempty"`
 }
 
 func NewConfigType() *ConfigType {

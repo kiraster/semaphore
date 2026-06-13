@@ -373,6 +373,8 @@ export default {
   filename: '文件名',
   size: '大小',
   modified: '修改时间',
+  download: '下载',
+  downloadFailed: '下载失败',
 
   xlsxInventory: 'XLSX 清单',
   rows: '行',

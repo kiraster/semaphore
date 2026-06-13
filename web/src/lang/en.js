@@ -433,4 +433,6 @@ export default {
   filename: 'Filename',
   size: 'Size',
   modified: 'Modified',
+  download: 'Download',
+  downloadFailed: 'Download failed',
 };

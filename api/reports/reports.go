@@ -127,7 +127,7 @@ func DownloadReportFilesAsZip(w http.ResponseWriter, r *http.Request) {
 	// Create a zip writer
 	zipWriter := zip.NewWriter(tempFile)
 	
-	// Add each file to the zip archive
+	// Add each file/directory to the zip archive
 	for _, filename := range requestBody.Files {
 		// Security check
 		if strings.Contains(filename, "..") || strings.Contains(filename, "\\") {
@@ -138,7 +138,15 @@ func DownloadReportFilesAsZip(w http.ResponseWriter, r *http.Request) {
 		
 		// Check if file exists
 		fileInfo, err := os.Stat(filePath)
-		if os.IsNotExist(err) || fileInfo.IsDir() {
+		if os.IsNotExist(err) {
+			continue
+		}
+		
+		// If it's a directory, recursively add all files
+		if fileInfo.IsDir() {
+			if err := addDirectoryToZip(zipWriter, reportDir, filename); err != nil {
+				log.WithError(err).Errorf("Failed to add directory %s to zip", filename)
+			}
 			continue
 		}
 		
@@ -172,6 +180,47 @@ func DownloadReportFilesAsZip(w http.ResponseWriter, r *http.Request) {
 	
 	// Close the temp file
 	tempFile.Close()
+}
+
+// addDirectoryToZip recursively adds all files in a directory to the zip archive
+func addDirectoryToZip(zipWriter *zip.Writer, baseDir, dirPath string) error {
+	dirFullPath := filepath.Join(baseDir, dirPath)
+	
+	files, err := os.ReadDir(dirFullPath)
+	if err != nil {
+		return err
+	}
+	
+	for _, file := range files {
+		fileFullPath := filepath.Join(dirFullPath, file.Name())
+		fileRelPath := filepath.Join(dirPath, file.Name())
+		
+		if file.IsDir() {
+			if err := addDirectoryToZip(zipWriter, baseDir, fileRelPath); err != nil {
+				return err
+			}
+			continue
+		}
+		
+		f, err := os.Open(fileFullPath)
+		if err != nil {
+			return err
+		}
+		
+		zipEntry, err := zipWriter.Create(fileRelPath)
+		if err != nil {
+			f.Close()
+			return err
+		}
+		
+		_, err = io.Copy(zipEntry, f)
+		f.Close()
+		if err != nil {
+			return err
+		}
+	}
+	
+	return nil
 	
 	// Read the zip file and send to client
 	zipFile, err := os.Open(tempFilePath)

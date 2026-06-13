@@ -1,90 +1,89 @@
 <!-- web/src/views/Reports.vue -->
-<template>
-  <div>
-    <v-card>
-      <v-card-title class="align-center">
-        <v-btn
-          v-if="currentPath"
-          icon
-          @click="goBack"
-          class="mr-2"
-          depressed
-        >
-          <v-icon>mdi-arrow-left</v-icon>
-        </v-btn>
+<template xmlns:v-slot="http://www.w3.org/1999/XSL/Transform">
+  <!-- 加载状态 -->
+  <div v-if="loading">
+    <v-progress-linear
+      indeterminate
+      color="primary darken-2"
+    ></v-progress-linear>
+  </div>
 
-        <v-breadcrumbs class="flex-grow-1" :items="breadcrumbs">
-          <template v-slot:item="{ item }">
-            <v-breadcrumb-item
-              @click="navigateToPath(item.path)"
-              :disabled="item.path === currentPath"
-            >
-              {{ item.name }}
-            </v-breadcrumb-item>
-          </template>
-        </v-breadcrumbs>
+  <div v-else>
+    <!-- 工具栏（包含面包屑） -->
+    <v-toolbar flat>
+      <v-app-bar-nav-icon @click="showDrawer()"></v-app-bar-nav-icon>
 
-        <v-btn
-          v-if="selectedFiles.length > 0"
-          color="primary"
-          @click="downloadSelectedAsZip"
-          :loading="isDownloading"
-        >
-          <v-icon left>mdi-download</v-icon>
-          批量下载 ({{ selectedFiles.length }})
-        </v-btn>
-      </v-card-title>
+      <!-- 页面标题 + 路径显示 -->
+      <div class="flex-grow-1 d-flex align-center">
+        <span class="text-h6 font-weight-bold text-primary">{{ $t('reports') }}</span>
+        <span
+         v-if="currentPath" class="text-h6 font-weight-bold text-primary">/{{ currentPath }}/
+        </span>
+      </div>
 
-      <v-card-text>
-        <v-data-table
-          :headers="headers"
-          :items="files"
-          :loading="loading"
-          class="elevation-1 report-table"
-          item-key="name"
-          :footer-props="{ 'items-per-page-options': [10, 20, 50, 100] }"
-        >
-          <template v-slot:item.checkbox="{ item }">
-            <v-checkbox
-              v-if="!item.is_dir"
-              v-model="selectedFiles"
-              :value="item.name"
-              hide-details
-              class="checkbox-cell"
-            ></v-checkbox>
-          </template>
+      <!-- 批量下载按钮 -->
+      <v-btn
+        v-if="selectedFiles.length > 0"
+        color="primary"
+        @click="downloadSelectedAsZip"
+        :loading="isDownloading"
+      >
+        <v-icon left>mdi-download</v-icon>
+        {{ $t('download') }} ({{ selectedFiles.length }})
+      </v-btn>
+    </v-toolbar>
 
-          <template v-slot:item.name="{ item }">
-            <v-list-item @click="handleItemClick(item)" class="cursor-pointer">
-              <v-icon v-if="item.is_dir">mdi-folder</v-icon>
-              <v-icon v-else>mdi-file</v-icon>
-              <span class="ml-2">{{ item.name }}</span>
-            </v-list-item>
-          </template>
+    <!-- 分隔线 -->
+    <v-divider />
 
-          <template v-slot:item.size="{ item }">
-            <span class="text-center d-block">{{ formatSize(item.size) }}</span>
-          </template>
+    <!-- 数据表格 -->
+    <v-data-table
+      :headers="headers"
+      :items="displayFiles"
+      class="mt-4 elevation-1 report-table"
+      item-key="__id"
+      :footer-props="{ 'items-per-page-options': [10, 20, 50, 100] }"
+    >
+      <template v-slot:item.checkbox="{ item }">
+        <v-checkbox
+          v-if="!item.is_parent"
+          v-model="selectedFiles"
+          :value="item.name"
+          hide-details
+          class="checkbox-cell"
+        ></v-checkbox>
+      </template>
 
-          <template v-slot:item.mod_time="{ item }">
-            <span class="text-center d-block">{{ item.mod_time }}</span>
-          </template>
+      <template v-slot:item.name="{ item }">
+        <v-list-item @click="handleItemClick(item)" class="cursor-pointer">
+          <v-icon v-if="item.is_parent">mdi-folder-up</v-icon>
+          <v-icon v-else-if="item.is_dir">mdi-folder</v-icon>
+          <v-icon v-else>mdi-file</v-icon>
+          <span class="ml-2">{{ item.name }}</span>
+        </v-list-item>
+      </template>
 
-          <template v-slot:item.actions="{ item }">
-            <div class="text-center">
-              <v-btn
-                v-if="!item.is_dir"
-                icon
-                color="primary"
-                @click="downloadSingleFile(item.name)"
-              >
-                <v-icon>mdi-download</v-icon>
-              </v-btn>
-            </div>
-          </template>
-        </v-data-table>
-      </v-card-text>
-    </v-card>
+      <template v-slot:item.size="{ item }">
+        <span class="text-center d-block">{{ formatSize(item.size) }}</span>
+      </template>
+
+      <template v-slot:item.mod_time="{ item }">
+        <span class="text-center d-block">{{ item.mod_time }}</span>
+      </template>
+
+      <template v-slot:item.actions="{ item }">
+        <div class="text-center">
+          <v-btn
+            v-if="!item.is_parent"
+            icon
+            color="primary"
+            @click="downloadItem(item)"
+          >
+            <v-icon>mdi-download</v-icon>
+          </v-btn>
+        </div>
+      </template>
+    </v-data-table>
   </div>
 </template>
 
@@ -99,7 +98,6 @@ export default {
       loading: false,
       isDownloading: false,
       currentPath: '',
-      breadcrumbs: [],
       selectedFiles: [],
       headers: [
         {
@@ -137,31 +135,66 @@ export default {
   mounted() {
     this.loadFiles();
   },
+  computed: {
+    displayFiles() {
+      if (!this.files) {
+        return [];
+      }
+
+      const filesWithId = this.files.map((file, index) => ({
+        ...file,
+        __id: `${file.name}_${index}`,
+      }));
+
+      if (this.currentPath) {
+        filesWithId.unshift({
+          name: 'Parent directory/',
+          size: 0,
+          mod_time: '',
+          is_dir: false,
+          is_parent: true,
+          __id: 'parent_directory',
+        });
+      }
+
+      return filesWithId;
+    },
+  },
   methods: {
+    showDrawer() {
+      if (this.$store) {
+        this.$store.commit('toggleDrawer');
+      }
+    },
     async loadFiles() {
       this.loading = true;
       this.selectedFiles = [];
+
       try {
+        const projectId = this.$route?.params?.projectId;
+        if (!projectId) {
+          throw new Error('Project ID not found');
+        }
+
         const pathParam = this.currentPath ? `?path=${encodeURIComponent(this.currentPath)}` : '';
-        const response = await axios.get(`/api/project/${this.$route.params.projectId}/reports${pathParam}`);
-        this.files = response.data;
-        this.updateBreadcrumbs();
+        const response = await axios.get(`/api/project/${projectId}/reports${pathParam}`);
+        this.files = response.data || [];
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Failed to load report files:', error);
+        this.files = [];
       } finally {
         this.loading = false;
       }
     },
     handleItemClick(item) {
-      if (item.is_dir) {
+      if (item.is_parent) {
+        this.goBack();
+      } else if (item.is_dir) {
         const newPath = this.currentPath ? `${this.currentPath}/${item.name}` : item.name;
         this.currentPath = newPath;
         this.loadFiles();
       }
-    },
-    navigateToPath(path) {
-      this.currentPath = path;
-      this.loadFiles();
     },
     goBack() {
       if (this.currentPath) {
@@ -170,15 +203,11 @@ export default {
         this.loadFiles();
       }
     },
-    updateBreadcrumbs() {
-      this.breadcrumbs = [{ name: '报告', path: '' }];
-      if (this.currentPath) {
-        const parts = this.currentPath.split('/');
-        let currentPath = '';
-        parts.forEach((part) => {
-          currentPath = currentPath ? `${currentPath}/${part}` : part;
-          this.breadcrumbs.push({ name: part, path: currentPath });
-        });
+    downloadItem(item) {
+      if (item.is_dir) {
+        this.downloadDirectoryAsZip(item.name);
+      } else {
+        this.downloadSingleFile(item.name);
       }
     },
     downloadSingleFile(filename) {
@@ -189,6 +218,36 @@ export default {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    },
+    async downloadDirectoryAsZip(dirname) {
+      this.isDownloading = true;
+
+      try {
+        const dirPath = this.currentPath ? `${this.currentPath}/${dirname}` : dirname;
+        const response = await axios.post(
+          `/api/project/${this.$route.params.projectId}/reports/download/zip`,
+          { files: [dirPath] },
+          { responseType: 'blob' },
+        );
+
+        const url = window.URL.createObjectURL(response.data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${dirname}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to download directory:', error);
+        this.$snackbar({
+          color: 'error',
+          text: this.$t('downloadFailed'),
+        });
+      } finally {
+        this.isDownloading = false;
+      }
     },
     async downloadSelectedAsZip() {
       if (this.selectedFiles.length === 0) return;
@@ -217,10 +276,11 @@ export default {
 
         this.selectedFiles = [];
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('Failed to download zip:', error);
         this.$snackbar({
           color: 'error',
-          text: '批量下载失败，请重试',
+          text: this.$t('downloadFailed'),
         });
       } finally {
         this.isDownloading = false;

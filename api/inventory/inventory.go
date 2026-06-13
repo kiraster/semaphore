@@ -9,6 +9,7 @@ import (
 
 	"github.com/xuri/excelize/v2"
 	log "github.com/sirupsen/logrus"
+	"github.com/semaphoreui/semaphore/util" 
 )
 
 type SheetData struct {
@@ -23,21 +24,33 @@ type InventoryFile struct {
 	Sheets []SheetData `json:"sheets"`
 }
 
-// api/inventory/inventory.go
 func GetXLSXInventory(w http.ResponseWriter, r *http.Request) {
-    var files []InventoryFile
+	var files []InventoryFile
+	
+	// 从配置读取路径，如果配置不存在则使用默认值
+	ansiblePath := "/etc/semaphore/inventory_ansible.xlsx"
+	nornirPath := "/etc/semaphore/inventory_nornir.xlsx"
 
-    if ansibleFile := readInventoryFile("/etc/semaphore/inventory_ansible.xlsx", "ansible"); ansibleFile.Name != "" {
-        files = append(files, ansibleFile)
-    }
+	if util.Config.Inventory != nil {
+		if util.Config.Inventory.AnsiblePath != "" {
+			ansiblePath = util.Config.Inventory.AnsiblePath
+		}
+		if util.Config.Inventory.NornirPath != "" {
+			nornirPath = util.Config.Inventory.NornirPath
+		}
+	}
 
-    if nornirFile := readInventoryFile("/etc/semaphore/inventory_nornir.xlsx", "nornir"); nornirFile.Name != "" {
-        files = append(files, nornirFile)
-    }
+	if ansibleFile := readInventoryFile(ansiblePath, "ansible"); ansibleFile.Name != "" {
+		files = append(files, ansibleFile)
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusOK)
-    _ = json.NewEncoder(w).Encode(files)
+	if nornirFile := readInventoryFile(nornirPath, "nornir"); nornirFile.Name != "" {
+		files = append(files, nornirFile)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(files)
 }
 
 
