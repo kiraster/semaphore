@@ -180,6 +180,29 @@ func DownloadReportFilesAsZip(w http.ResponseWriter, r *http.Request) {
 	
 	// Close the temp file
 	tempFile.Close()
+	
+	// Read the zip file and send to client
+	zipFile, err := os.Open(tempFilePath)
+	if err != nil {
+		log.WithError(err).Error("Failed to open zip file")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer zipFile.Close()
+	
+	// Set response headers
+	timestamp := time.Now().Format("20060102_150405")
+	w.Header().Set("Content-Disposition", "attachment; filename=reports_"+projectID+"_"+timestamp+".zip")
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	
+	// Send the file
+	_, err = io.Copy(w, zipFile)
+	if err != nil {
+		log.WithError(err).Error("Failed to send zip file")
+	}
 }
 
 // addDirectoryToZip recursively adds all files in a directory to the zip archive
@@ -221,18 +244,4 @@ func addDirectoryToZip(zipWriter *zip.Writer, baseDir, dirPath string) error {
 	}
 	
 	return nil
-}
-
-// Set response headers	timestamp := time.Now().Format("20060102_150405")
-w.Header().Set("Content-Disposition", "attachment; filename=reports_"+projectID+"_"+timestamp+".zip")
-w.Header().Set("Content-Type", "application/zip")
-w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	
-	// Send the file
-	_, err = io.Copy(w, zipFile)
-	if err != nil {
-		log.WithError(err).Error("Failed to send zip file")
-	}
 }
