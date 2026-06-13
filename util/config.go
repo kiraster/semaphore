@@ -283,8 +283,9 @@ type ConfigDirs struct {
 
 // 添加新的inventory配置结构体, 2026-06-13 12:22:44
 type InventoryConfig struct {
-    AnsiblePath string `json:"ansible_path,omitempty" env:"SEMAPHORE_INVENTORY_ANSIBLE_PATH" default:"/etc/semaphore/inventory_ansible.xlsx"`
-    NornirPath  string `json:"nornir_path,omitempty" env:"SEMAPHORE_INVENTORY_NORNIR_PATH" default:"/etc/semaphore/inventory_nornir.xlsx"`
+    AnsiblePath string   `json:"ansible_path,omitempty" env:"SEMAPHORE_INVENTORY_ANSIBLE_PATH" default:"/etc/semaphore/inventory_ansible.xlsx"`
+    NornirPath  string   `json:"nornir_path,omitempty" env:"SEMAPHORE_INVENTORY_NORNIR_PATH" default:"/etc/semaphore/inventory_nornir.xlsx"`
+    Paths       []string `json:"paths,omitempty" env:"SEMAPHORE_INVENTORY_PATHS"`  // 缺少此字段
 }
 
 // ConfigType mapping between Config and the json file that sets it
