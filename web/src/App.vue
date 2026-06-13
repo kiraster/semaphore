@@ -385,17 +385,17 @@
           </v-list-item-content>
         </v-list-item>
 
-        <!-- 新增 XLSX 清单菜单 -->
+        <!-- 新增设备清单菜单 -->
         <v-list-item
-          key="xlsx-inventory"
-          :to="`/project/${projectId}/xlsx-inventory`"
-          data-testid="sidebar-xlsx-inventory"
+          key="device-inventory"
+          :to="`/project/${projectId}/device-inventory`"
+          data-testid="sidebar-device-inventory"
         >
           <v-list-item-icon>
-            <v-icon>mdi-file-excel</v-icon>
+            <v-icon>mdi-server</v-icon>
           </v-list-item-icon>
           <v-list-item-content>
-            <v-list-item-title>{{ $t('xlsxInventory') }}</v-list-item-title>
+            <v-list-item-title>{{ $t('deviceInventory') }}</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
 

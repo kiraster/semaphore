@@ -435,4 +435,6 @@ export default {
   modified: 'Modified',
   download: 'Download',
   downloadFailed: 'Download failed',
+
+  deviceInventory: 'Device Inventory',
 };

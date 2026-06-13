@@ -376,7 +376,7 @@ export default {
   download: '下载',
   downloadFailed: '下载失败',
 
-  xlsxInventory: 'XLSX 清单',
+  deviceInventory: '设备清单',
   rows: '行',
   hostInventory: '主机清单',
   groupVariables: '组变量',
