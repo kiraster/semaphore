@@ -376,13 +376,64 @@ export default {
   download: '下载',
   downloadFailed: '下载失败',
 
+  // 设备清单页面翻译-2026-05-28 10:00:00 - DeviceInventory.vue
   deviceInventory: '设备清单',
   rows: '行',
-  hostInventory: '主机清单',
-  groupVariables: '组变量',
+
+  // 环境变量翻译-2026-06-14 10:00:00 - DeviceInventory.vue
   env: {
     dev: '开发',
     prod: '生产',
     test: '测试',
+  },
+  // 设备清单表头翻译 - 2026-06-15 11:45:50
+  inventoryHeaders: {
+    // 通用字段
+    Hostname: '主机名',
+    Group: '分组',
+    name: '名称',
+    hostname: '主机地址',
+    platform: '平台',
+    port: '端口',
+    username: '用户名',
+    password: '密码',
+    groups: '分组',
+    site: '站点',
+    role: '角色',
+    type: '类型',
+    cmds: '命令',
+    data: '数据',
+    defaults: '默认值',
+    connection_options: '连接选项',
+
+    // Ansible 连接参数
+    ansible_host: '主机地址',
+    ansible_port: 'SSH端口',
+    ansible_user: 'SSH用户',
+    ansible_password: 'SSH密码',
+    ansible_connection: '连接类型',
+    ansible_ssh_private_key_file: '私钥文件',
+    ansible_ssh_common_args: 'SSH参数',
+
+    // Ansible 特权提升
+    ansible_become: '权限提升',
+    ansible_become_method: '提权方式',
+    ansible_become_user: '目标用户',
+    ansible_become_password: '提权密码',
+
+    // Ansible 环境配置
+    ansible_shell_type: 'Shell类型',
+    ansible_python_interpreter: 'Python解释器',
+    ansible_winrm_transport: 'WinRM传输',
+    ansible_winrm_server_cert_validation: '证书验证',
+
+    // Nornir 字段
+    extras: '扩展参数',
+  },
+  inventorySheetNames: {
+    hosts: '主机',
+    group_vars: '组变量',
+    Sheet1: '数据表1',
+    Sheet2: '数据表2',
   },
 };

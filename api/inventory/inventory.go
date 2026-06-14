@@ -25,7 +25,8 @@ type InventoryFile struct {
 	Sheets []SheetData `json:"sheets"`
 }
 
-// 添加密码脱敏函数
+// 添加密码脱敏函数 - 2026-06-14 15:00:59
+// 简化脱敏逻辑：所有密码字段统一替换为******
 func maskPassword(password string) string {
     return "******"
 }
@@ -184,10 +185,11 @@ func readInventoryFileWithName(filePath, displayName, source string) InventoryFi
 		})
 	}
 
-	// 扩展脱敏字段列表
+	// 扩展脱敏字段列表 - 2026-06-14 15:05:32
+	// 支持多种密码字段名：ansible_password, password, ssh_password, winrm_password, secret, pass
     passwordFields := []string{"ansible_password", "password", "ssh_password", "winrm_password", "secret", "pass"}
     
-    // 对所有密码字段脱敏
+    // 对所有密码字段脱敏 - 2026-06-14 15:05:45
     for sheetIdx := range result.Sheets {
         for rowIdx := range result.Sheets[sheetIdx].Rows {
             for _, field := range passwordFields {
@@ -197,7 +199,6 @@ func readInventoryFileWithName(filePath, displayName, source string) InventoryFi
             }
         }
     }
-    
 	return result
 }
 

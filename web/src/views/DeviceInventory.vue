@@ -43,7 +43,7 @@
           v-for="(sheet, index) in currentFile?.sheets || []"
           :key="index"
         >
-          {{ sheet.name }} ({{ sheet.rows.length }} 行)
+          {{ translatedSheetName(sheet.name) }} ({{ sheet.rows.length }} 行)
         </v-tab>
       </v-tabs>
       <v-divider style="margin-top: -1px;"/>
@@ -57,12 +57,14 @@
         ></v-text-field>
       </div>
       <!-- 数据表格 -->
+      <!-- 禁用大写转换 2026-06-15 06:42:29-->
       <v-data-table
         class="mt-4"
         :headers="tableHeaders"
         :items="tableItems"
         item-key="__id"
-        :footer-props="{ 'items-per-page-options': [10, 20, 50] }"
+        :footer-props="{ 'items-per-page-options': [10, 20, 50, 100, 1000] }"
+        :header-props="{ 'disable-uppercase': true }"
       >
       </v-data-table>
     </div>
@@ -101,7 +103,15 @@ export default {
     },
     tableHeaders() {
       if (!this.currentSheet) return [];
-      return this.currentSheet.headers.map((h) => ({ text: h, value: h }));
+      return this.currentSheet.headers.map((h) => {
+        const translated = this.$t(`inventoryHeaders.${h}`);
+        // 修复翻译回退逻辑 - 2026-06-15 14:00:00
+        // 当翻译键不存在时，$t() 返回键名，需要回退到原始值
+        const text = translated && !translated.includes('inventoryHeaders.')
+          ? translated
+          : h;
+        return { text, value: h };
+      });
     },
     tableItems() {
       if (!this.currentSheet) return [];
@@ -155,6 +165,13 @@ export default {
         TEST: this.$t('env.test'),
       };
       return fileName.replace(/\((DEV|PROD|TEST)\)/g, (_, env) => `(${envMap[env] || env})`);
+    },
+    // 翻译 Sheet 名称 - 2026-06-15 15:00:00
+    // 如果翻译文件中没有对应值，保持原始字符
+    translatedSheetName(sheetName) {
+      const translated = this.$t(`inventorySheetNames.${sheetName}`);
+      // 检查是否为有效的翻译（不是键名本身）
+      return translated && !translated.includes('inventorySheetNames.') ? translated : sheetName;
     },
   },
 };

@@ -442,4 +442,54 @@ export default {
     prod: 'Prod',
     test: 'Test',
   },
+  // Inventory headers translation - 2026-06-15 11:46:38
+  inventoryHeaders: {
+    // Common fields
+    Hostname: 'Hostname',
+    Group: 'Group',
+    name: 'Name',
+    hostname: 'Hostname',
+    platform: 'Platform',
+    port: 'Port',
+    username: 'Username',
+    password: 'Password',
+    groups: 'Groups',
+    site: 'Site',
+    role: 'Role',
+    type: 'Type',
+    cmds: 'Commands',
+    data: 'Data',
+    defaults: 'Defaults',
+    connection_options: 'Connection Options',
+
+    // Ansible connection parameters
+    ansible_host: 'Host',
+    ansible_port: 'SSH Port',
+    ansible_user: 'SSH User',
+    ansible_password: 'SSH Password',
+    ansible_connection: 'Connection Type',
+    ansible_ssh_private_key_file: 'Private Key',
+    ansible_ssh_common_args: 'SSH Args',
+
+    // Ansible privilege escalation
+    ansible_become: 'Privilege Escalation',
+    ansible_become_method: 'Become Method',
+    ansible_become_user: 'Become User',
+    ansible_become_password: 'Become Password',
+
+    // Ansible environment
+    ansible_shell_type: 'Shell Type',
+    ansible_python_interpreter: 'Python Interpreter',
+    ansible_winrm_transport: 'WinRM Transport',
+    ansible_winrm_server_cert_validation: 'Cert Validation',
+
+    // Nornir fields
+    extras: 'Extras',
+  },
+  inventorySheetNames: {
+    hosts: 'Hosts',
+    group_vars: 'Group Variables',
+    Sheet1: 'Sheet 1',
+    Sheet2: 'Sheet 2',
+  },
 };
