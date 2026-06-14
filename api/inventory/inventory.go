@@ -25,6 +25,11 @@ type InventoryFile struct {
 	Sheets []SheetData `json:"sheets"`
 }
 
+// 添加密码脱敏函数
+func maskPassword(password string) string {
+    return "******"
+}
+
 func GetXLSXInventory(w http.ResponseWriter, r *http.Request) {
 	var files []InventoryFile
 	
@@ -179,6 +184,20 @@ func readInventoryFileWithName(filePath, displayName, source string) InventoryFi
 		})
 	}
 
+	// 扩展脱敏字段列表
+    passwordFields := []string{"ansible_password", "password", "ssh_password", "winrm_password", "secret", "pass"}
+    
+    // 对所有密码字段脱敏
+    for sheetIdx := range result.Sheets {
+        for rowIdx := range result.Sheets[sheetIdx].Rows {
+            for _, field := range passwordFields {
+                if _, exists := result.Sheets[sheetIdx].Rows[rowIdx][field]; exists {
+                    result.Sheets[sheetIdx].Rows[rowIdx][field] = maskPassword("")
+                }
+            }
+        }
+    }
+    
 	return result
 }
 

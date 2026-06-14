@@ -33,7 +33,7 @@
           v-for="(file, index) in inventoryFiles"
           :key="index"
         >
-          {{ file.name }}
+          {{ translatedFileName(file.name) }}
         </v-tab>
       </v-tabs>
       <v-divider style="margin-top: -1px;"/>
@@ -64,24 +64,7 @@
         item-key="__id"
         :footer-props="{ 'items-per-page-options': [10, 20, 50] }"
       >
-        <template v-slot:item.ansible_password="{ item }">
-          <v-icon>mdi-eye-off</v-icon>
-          <span class="ml-2">{{ maskPassword(item.ansible_password) }}</span>
-        </template>
-        <template v-slot:item.password="{ item }">
-          <v-icon>mdi-eye-off</v-icon>
-          <span class="ml-2">{{ maskPassword(item.password) }}</span>
-        </template>
       </v-data-table>
-      <!-- Sheet 类型标识 -->
-      <div class="pl-4 pb-4">
-        <v-chip v-if="isHostsSheet(currentSheet)" color="blue">
-          主机清单
-        </v-chip>
-        <v-chip v-else-if="isGroupVarsSheet(currentSheet)" color="green">
-          组变量
-        </v-chip>
-      </div>
     </div>
   </div>
 </template>
@@ -138,6 +121,9 @@ export default {
         console.log('Loading inventory for project:', this.projectId);
         const response = await axios.get(`/api/project/${this.projectId}/xlsx-inventory`);
 
+        // 打印原始响应内容
+        console.log('Raw response data:', JSON.stringify(response.data, null, 2));
+
         // 处理错误响应
         if (response.data.error) {
           this.errorMessage = response.data.error;
@@ -156,23 +142,19 @@ export default {
         console.log('isLoaded set to true');
       }
     },
-    maskPassword(password) {
-      if (!password) return '';
-      if (password.length <= 4) return '****';
-      return password[0] + '*'.repeat(password.length - 2) + password.slice(-1);
-    },
-    isHostsSheet(sheet) {
-      const hostHeaders = ['hostname', 'host', 'ansible_host', 'name'];
-      return sheet.headers.some((h) => hostHeaders.includes(h.toLowerCase()));
-    },
-    isGroupVarsSheet(sheet) {
-      const groupHeaders = ['group', 'group_name', 'ansible_connection'];
-      return sheet.headers.some((h) => groupHeaders.includes(h.toLowerCase()));
-    },
     showDrawer() {
       if (this.$store) {
         this.$store.commit('toggleDrawer');
       }
+    },
+    // 翻译文件名中的环境变量
+    translatedFileName(fileName) {
+      const envMap = {
+        DEV: this.$t('env.dev'),
+        PROD: this.$t('env.prod'),
+        TEST: this.$t('env.test'),
+      };
+      return fileName.replace(/\((DEV|PROD|TEST)\)/g, (_, env) => `(${envMap[env] || env})`);
     },
   },
 };

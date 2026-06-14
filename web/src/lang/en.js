@@ -437,4 +437,9 @@ export default {
   downloadFailed: 'Download failed',
 
   deviceInventory: 'Device Inventory',
+  env: {
+    dev: 'Dev',
+    prod: 'Prod',
+    test: 'Test',
+  },
 };

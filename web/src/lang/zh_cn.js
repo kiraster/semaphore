@@ -380,4 +380,9 @@ export default {
   rows: '行',
   hostInventory: '主机清单',
   groupVariables: '组变量',
+  env: {
+    dev: '开发',
+    prod: '生产',
+    test: '测试',
+  },
 };
