@@ -1,0 +1,125 @@
+# ============================================================
+# 第一阶段：依赖层 (deps)
+# 目的：下载并缓存所有依赖，不包含项目源码
+# ============================================================
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine3.21 AS deps
+ARG TARGETARCH
+
+# 宿主机IP地址需要根据实际环境修改
+ARG LOCAL_REPO="http://172.31.100.251:8080"
+
+# 配置 Alpine 国内源并安装编译依赖
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
+    apk add --no-cache -U \
+    libc-dev curl nodejs npm git gcc zip unzip tar
+
+# 安装 task (构建工具)
+WORKDIR /usr/local
+RUN GOPROXY=https://goproxy.cn,direct go install github.com/go-task/task/v3/cmd/task@v3.38.0
+ENV PATH="/go/bin:${PATH}"
+
+WORKDIR /go/src/semaphore
+
+# 只复制 pro 目录
+COPY pro ./pro
+
+# 复制依赖定义文件 (只复制定义文件，不复制源码)
+COPY go.mod go.sum ./
+COPY web/package.json web/package-lock.json ./web/
+
+# 下载 Go 模块依赖 (使用国内代理)
+RUN --mount=type=cache,target=/go/pkg \
+    GOPROXY=https://goproxy.cn,direct go mod download -x
+
+# 安装前端依赖 (使用国内镜像)
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --prefix ./web --registry=https://registry.npmmirror.com
+
+# 下载二进制工具 (tofu, terraform, terragrunt)
+RUN --mount=type=cache,target=/tmp/downloads \
+    wget -q -O /tmp/downloads/tofu ${LOCAL_REPO}/tofu_${TARGETARCH} && \
+    wget -q -O /tmp/downloads/terraform ${LOCAL_REPO}/terraform_${TARGETARCH} && \
+    wget -q -O /tmp/downloads/terragrunt ${LOCAL_REPO}/terragrunt_${TARGETARCH} && \
+    chmod +x /tmp/downloads/tofu /tmp/downloads/terraform /tmp/downloads/terragrunt && \
+    cp /tmp/downloads/tofu /tmp/tofu && \
+    cp /tmp/downloads/terraform /tmp/terraform && \
+    cp /tmp/downloads/terragrunt /tmp/terragrunt
+
+
+# ============================================================
+# 第二阶段：构建层 (builder)
+# 基于 deps 阶段，添加源码并进行构建
+# ============================================================
+FROM deps AS builder
+ARG TARGETARCH
+
+# 复制所有源码
+COPY . /go/src/semaphore
+
+# 构建应用
+RUN --mount=type=cache,target=/go/pkg \
+    --mount=type=cache,target=/root/.cache/go-build \
+    task build GOOS=${TARGETOS} GOARCH=${TARGETARCH}
+
+# ============================================================
+# 第三阶段：运行时镜像 (最终产物)
+# ============================================================
+FROM alpine:3.21
+
+# 配置 Alpine 国内源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
+ARG TARGETARCH
+ARG ANSIBLE_VERSION=13.5.0
+ENV ANSIBLE_VERSION=${ANSIBLE_VERSION}
+ARG ANSIBLE_VENV_PATH=/opt/semaphore/apps/ansible/${ANSIBLE_VERSION}/venv
+
+# 安装运行时系统依赖 (包括 tini)
+RUN apk add --no-cache -U \
+    bash curl git gnupg mysql-client openssh-client-default \
+    python3 py3-pip rsync sshpass tar tini tzdata unzip wget zip jq && \
+    rm -rf /var/cache/apk/* && \
+    adduser -D -u 1001 -G root semaphore && \
+    mkdir -p /tmp/semaphore /etc/semaphore /var/lib/semaphore /opt/semaphore && \
+    chown -R semaphore:0 /tmp/semaphore /etc/semaphore /var/lib/semaphore /opt/semaphore && \
+    find /usr/lib/python* -iname __pycache__ | xargs rm -rf
+
+# 安装 Python 依赖 (使用国内镜像)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    apk add --no-cache -U python3-dev build-base openssl-dev libffi-dev cargo && \
+    mkdir -p ${ANSIBLE_VENV_PATH} && \
+    python3 -m venv ${ANSIBLE_VENV_PATH} --system-site-packages && \
+    source ${ANSIBLE_VENV_PATH}/bin/activate && \
+    pip3 install --upgrade pip --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ && \
+    pip3 install ansible==${ANSIBLE_VERSION} boto3 botocore requests pywinrm passlib --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ && \
+    apk del python3-dev build-base openssl-dev libffi-dev cargo && \
+    rm -rf /var/cache/apk/* && \
+    find ${ANSIBLE_VENV_PATH} -iname __pycache__ | xargs rm -rf && \
+    chown -R semaphore:0 /opt/semaphore
+
+# SSH 配置
+RUN mkdir -p /etc/ssh/ssh_config.d && echo $'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null' > /etc/ssh/ssh_config.d/semaphore.conf
+
+# 复制配置文件和二进制文件
+COPY --chown=1001:0 ./deployment/docker/server/ansible.cfg /etc/ansible/ansible.cfg
+COPY --from=builder /go/src/semaphore/deployment/docker/server/server-wrapper /usr/local/bin/
+COPY --from=builder /go/src/semaphore/bin/semaphore /usr/local/bin/
+COPY --from=builder /tmp/tofu /usr/local/bin/
+COPY --from=builder /tmp/terraform /usr/local/bin/
+COPY --from=builder /tmp/terragrunt /usr/local/bin/
+
+RUN chown -R semaphore:0 /usr/local/bin/server-wrapper && \
+    chmod +x /usr/local/bin/server-wrapper && \
+    chown -R semaphore:0 /usr/local/bin/semaphore && \
+    chmod +x /usr/local/bin/semaphore
+
+WORKDIR /home/semaphore
+
+USER 1001
+EXPOSE 3000
+
+ENV VIRTUAL_ENV="$ANSIBLE_VENV_PATH"
+ENV PATH="$ANSIBLE_VENV_PATH/bin:$PATH"
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD [ "/usr/local/bin/server-wrapper"]

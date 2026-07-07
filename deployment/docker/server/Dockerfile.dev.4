@@ -1,0 +1,119 @@
+# ============================================================
+# 第一阶段：依赖层 (deps) - 离线构建版
+# ============================================================
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine3.21 AS deps
+ARG TARGETARCH
+
+# 1. 安装构建时系统依赖（从 alpine-pkgs-deps）
+COPY ./offline-deps/alpine-pkgs-deps/*.apk /tmp/apk-cache-deps/
+RUN apk add --allow-untrusted /tmp/apk-cache-deps/*.apk && \
+    rm -rf /tmp/apk-cache-deps
+
+# 2. 安装 task (构建工具)
+COPY ./offline-deps/go-task-cache/task /usr/local/bin/task
+RUN chmod +x /usr/local/bin/task
+ENV PATH="/usr/local/bin:${PATH}"
+
+WORKDIR /go/src/semaphore
+
+# 3. 复制 pro 目录
+COPY pro ./pro
+
+# 4. 复制依赖定义文件
+COPY go.mod go.sum ./
+COPY web/package.json web/package-lock.json ./web/
+
+# 5. 复制 Go 模块缓存
+COPY ./offline-deps/vendor ./vendor
+
+# 6. 复制前端依赖 (node_modules)
+COPY ./offline-deps/node_modules ./web/node_modules
+
+# 7. 复制二进制工具
+COPY ./offline-deps/binaries/tofu_amd64 /tmp/tofu
+COPY ./offline-deps/binaries/terraform_amd64 /tmp/terraform
+COPY ./offline-deps/binaries/terragrunt_amd64 /tmp/terragrunt
+RUN chmod +x /tmp/tofu /tmp/terraform /tmp/terragrunt
+
+# 8. 清理不必要的缓存文件（减小 deps 层体积）
+RUN rm -rf /go/pkg/mod/cache && \
+    rm -rf /go/src/semaphore/web/node_modules/.cache
+
+
+# ============================================================
+# 第二阶段：构建层 (builder)
+# ============================================================
+FROM deps AS builder
+ARG TARGETARCH
+
+# 复制所有源码
+COPY . /go/src/semaphore
+
+# 在 builder 阶段，COPY . 之后，task build 之前添加
+RUN cd /go/src/semaphore/web && npm rebuild
+
+# 构建应用 (使用本地 Go 模块缓存)
+RUN --mount=type=cache,target=/go/pkg \
+    --mount=type=cache,target=/root/.cache/go-build \
+    task build GOOS=${TARGETOS} GOARCH=${TARGETARCH}
+
+# ============================================================
+# 第三阶段：运行时镜像 (最终产物)
+# ============================================================
+FROM alpine:3.21
+
+ARG TARGETARCH
+ARG ANSIBLE_VERSION=13.5.0
+ENV ANSIBLE_VERSION=${ANSIBLE_VERSION}
+ARG ANSIBLE_VENV_PATH=/opt/semaphore/apps/ansible/${ANSIBLE_VERSION}/venv
+
+# ========== 从本地离线 APK 包安装运行时系统依赖 ==========
+# 复制运行时 APK 包（从 alpine-pkgs-runtime）
+COPY ./offline-deps/alpine-pkgs-runtime/*.apk /tmp/apk-cache-runtime/
+
+# 安装系统依赖并清理
+RUN apk add --allow-untrusted /tmp/apk-cache-runtime/*.apk && \
+    rm -rf /tmp/apk-cache-runtime && \
+    adduser -D -u 1001 -G root semaphore && \
+    mkdir -p /tmp/semaphore /etc/semaphore /var/lib/semaphore /opt/semaphore && \
+    chown -R semaphore:0 /tmp/semaphore /etc/semaphore /var/lib/semaphore /opt/semaphore && \
+    find /usr/lib/python* -iname __pycache__ | xargs rm -rf
+
+# ========== 从本地离线 Python 包安装 ==========
+COPY ./offline-deps/python-pkgs /tmp/python-cache
+
+# 安装 Python 虚拟环境并清理
+RUN mkdir -p ${ANSIBLE_VENV_PATH} && \
+    python3 -m venv ${ANSIBLE_VENV_PATH} --system-site-packages && \
+    source ${ANSIBLE_VENV_PATH}/bin/activate && \
+    pip install --no-index --find-links /tmp/python-cache ansible==${ANSIBLE_VERSION} boto3 botocore requests pywinrm passlib && \
+    rm -rf /tmp/python-cache && \
+    find ${ANSIBLE_VENV_PATH} -iname __pycache__ | xargs rm -rf && \
+    chown -R semaphore:0 /opt/semaphore
+
+# SSH 配置
+RUN mkdir -p /etc/ssh/ssh_config.d && echo $'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null' > /etc/ssh/ssh_config.d/semaphore.conf
+
+# 复制配置文件和二进制文件
+COPY --chown=1001:0 ./deployment/docker/server/ansible.cfg /etc/ansible/ansible.cfg
+COPY --from=builder /go/src/semaphore/deployment/docker/server/server-wrapper /usr/local/bin/
+COPY --from=builder /go/src/semaphore/bin/semaphore /usr/local/bin/
+COPY --from=builder /tmp/tofu /usr/local/bin/
+COPY --from=builder /tmp/terraform /usr/local/bin/
+COPY --from=builder /tmp/terragrunt /usr/local/bin/
+
+RUN chown -R semaphore:0 /usr/local/bin/server-wrapper && \
+    chmod +x /usr/local/bin/server-wrapper && \
+    chown -R semaphore:0 /usr/local/bin/semaphore && \
+    chmod +x /usr/local/bin/semaphore
+
+WORKDIR /home/semaphore
+
+USER 1001
+EXPOSE 3000
+
+ENV VIRTUAL_ENV="$ANSIBLE_VENV_PATH"
+ENV PATH="$ANSIBLE_VENV_PATH/bin:$PATH"
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD [ "/usr/local/bin/server-wrapper"]
