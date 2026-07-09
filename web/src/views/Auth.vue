@@ -90,13 +90,13 @@
               style="margin: auto;"
               class="mb-4"
             />
-
+            <!-- 修改 Auth.vue 使用 $t() 国际化方法替换硬编码文本 - 2026-07-09 11:42:00 -->
             <h2 v-if="screen === 'verification'" class="text-center pt-4 pb-6">
-              Two-step verification
+              {{ $t('twoStepVerification') }}
             </h2>
 
             <h2 v-else-if="screen === 'recovery'" class="text-center pt-4 pb-6">
-              Account recovery
+              {{ $t('accountRecovery') }}
             </h2>
 
             <h2 v-else class="text-center pt-4 pb-6">
@@ -118,12 +118,11 @@
             <div v-if="screen === 'verification'">
 
               <div  v-if="verificationMethod === 'totp'" class="text-center mb-4">
-                Open the two-step verification app on your mobile device to
-                get your verification code.
+                {{ $t('openTwoStepVerificationApp') }}
               </div>
 
               <div v-else-if="isPortal && verificationMethod === 'email'" class="text-center mb-4">
-                Check your email for the verification code we just sent you.
+                {{ $t('checkEmailForVerificationCode') }}
               </div>
 
               <v-otp-input
@@ -135,14 +134,14 @@
               <v-divider class="my-6" />
 
               <div class="text-center">
-                <a @click="signOut()" class="mr-6">{{ $t('Return to login') }}</a>
+                <a @click="signOut()" class="mr-6">{{ $t('returnToLogin') }}</a>
                 <a
                   v-if="verificationMethod === 'totp'
                     && authMethods.totp
                     && authMethods.totp.allow_recovery"
                   @click="screen = 'recovery'"
                 >
-                  {{ $t('Use recovery code') }}
+                  {{ $t('useRecoveryCode') }}
                 </a>
 
                 <v-btn
@@ -155,8 +154,8 @@
                 >
                   {{
                     verificationEmailSending
-                      ? $t('Email sending...')
-                      : $t('Resend code to email')
+                      ? $t('emailSending')
+                      : $t('resendCodeToEmail')
                   }}
                 </v-btn>
               </div>
@@ -164,7 +163,7 @@
 
             <div v-else-if="screen === 'recovery'">
               <div class="text-center mb-2">
-                Use your recovery code to regain access to your account.
+                {{ $t('useRecoveryCodeToRegainAccess') }}
               </div>
 
               <v-text-field
@@ -172,7 +171,7 @@
                 outlined
                 v-model="recoveryCode"
                 @keyup.enter.native="signIn"
-                :label="$t('Recovery code')"
+                :label="$t('recoveryCode')"
                 :rules="[v => !!v || $t('recoveryCode_required')]"
                 required
               />
@@ -183,12 +182,12 @@
                   color="primary"
                   @click="recovery()"
                 >
-                  Send
+                  {{ $t('send') }}
                 </v-btn>
               </div>
 
               <div class="text-center pt-6">
-                <a @click="screen = 'verification'">{{ $t('Return to verification') }}</a>
+                <a @click="screen = 'verification'">{{ $t('returnToVerification') }}</a>
               </div>
 
             </div>
@@ -411,7 +410,7 @@ export default {
         }));
         EventBus.$emit('i-snackbar', {
           color: 'success',
-          text: 'Verification email sent successfully.',
+          text: this.$t('verificationEmailSentSuccessfully'),
         });
       } catch (e) {
         EventBus.$emit('i-snackbar', {
